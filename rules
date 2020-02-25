@@ -27,105 +27,28 @@ else
   endif
 endif
 
+VULKAN_DRIVERS = 
+ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
 DRI_DRIVERS =
-GALLIUM_DRIVERS =
-VULKAN_DRIVERS =
-
-confflags_DRI3 = -Ddri3=false
-
-# hurd doesn't do direct rendering
-ifeq ($(DEB_HOST_ARCH_OS), hurd)
-	EGL_PLATFORMS = x11
-
-	confflags_DIRECT_RENDERING = -Dglx-direct=false
-	confflags_GBM = -Dgbm=false
-	confflags_OSMESA = -Dosmesa=classic
-	DRI_DRIVERS = swrast,
+GALLIUM_DRIVERS = kmsro, lima, panfrost, swrast
 else
-	EGL_PLATFORMS = x11,surfaceless
-
-  ifeq ($(DEB_HOST_ARCH_OS), linux)
-	confflags_DRI3 = -Ddri3=true
-	DRI_DRIVERS += nouveau,
-	# Gallium drivers which require kernel support, not yet ported to non-Linux
-	GALLIUM_DRIVERS += nouveau, virgl,
-
-	# Freedreno requires arm in addition
-	ifneq (,$(filter arm arm64,$(DEB_HOST_ARCH_CPU)))
-		GALLIUM_DRIVERS += freedreno,
-	endif
-
-	# etnaviv, kmsro, tegra, vc4 and v3d kernel support are only available on armhf and arm64
-	ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
-		GALLIUM_DRIVERS += etnaviv, kmsro, lima, panfrost, tegra, vc4, v3d,
-	endif
-
-	ifneq (,$(filter $(DEB_HOST_ARCH), amd64 i386 x32))
-		GALLIUM_DRIVERS += svga,zink,
-		# svga needs xa state tracker
-		confflags_GALLIUM += -Dgallium-xa=true
-		VULKAN_DRIVERS += intel,
-	endif
-
-	# Non-Linux ports also lack *_CLOEXEC and epoll, so wayland isn't ready yet:
-	EGL_PLATFORMS += ,wayland
-
-  endif
-
-	EGL_PLATFORMS += ,drm
-
-  # Build intel drivers on archs where libdrm-intel is installed
-  ifneq (,$(filter $(DEB_HOST_ARCH),amd64 i386 kfreebsd-amd64 kfreebsd-i386 x32))
-	DRI_DRIVERS += i915, i965,
-	GALLIUM_DRIVERS += iris,
-  endif
-
-	DRI_DRIVERS += r200, r100,
-	GALLIUM_DRIVERS += r600, r300,
-
-  # LLVM is required for building r300g, radeonsi and llvmpipe drivers.
-  # It's also required for building OpenCL support.
-  ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 kfreebsd-amd64 kfreebsd-i386 mips64el mipsel powerpc ppc64 ppc64el s390x sparc64))
-	GALLIUM_DRIVERS += radeonsi, swrast,
-	confflags_GALLIUM += -Dllvm=true
-	confflags_GALLIUM += -Dgallium-opencl=icd
-	confflags_OSMESA = -Dosmesa=gallium
-
-	# nine makes sense only on archs that build wine
-	ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 kfreebsd-i386 powerpc))
-		confflags_GALLIUM += -Dgallium-nine=true
-	endif
-  else
-	DRI_DRIVERS += swrast,
-	confflags_GALLIUM += -Dllvm=false
-	confflags_OSMESA = -Dosmesa=classic
-  endif
-
-  # radv needs LLVM and the Vulkan loader, so only build on the subset of
-  # arches where we have LLVM enabled and where the Vulkan loader is built.
-  ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 mips64el mipsel powerpc ppc64 ppc64el s390x sparc64))
-	VULKAN_DRIVERS += amd,
-  endif
-
-  # build vulkan overlay where Vulkan loader is available
-  ifneq (,$(filter $(DEB_HOST_ARCH), amd64 arm64 armel armhf i386 mips64el mipsel powerpc ppc64 ppc64el s390x sparc64 x32))
-	confflags_VULKAN += -Dvulkan-overlay-layer=true
-  endif
-
-	confflags_DIRECT_RENDERING = -Dglx-direct=true
-	confflags_GBM = -Dgbm=true
-	confflags_GALLIUM += -Dgallium-extra-hud=true
-	confflags_GALLIUM += -Dgallium-vdpau=true
-	confflags_GALLIUM += -Dlmsensors=true
-
-  ifeq (,$(filter pkg.mesa.nolibva,$(DEB_BUILD_PROFILES)))
-        confflags_GALLIUM += -Dgallium-va=true
-  endif
+DRI_DRIVERS = i965
+GALLIUM_DRIVERS = i915, swrast, iris
 endif
 
+EGL_PLATFORMS = drm,x11,surfaceless,wayland
+
+confflags_DIRECT_RENDERING = -Dglx-direct=true
+confflags_GBM = -Dgbm=true
+confflags_DRI3 = -Ddri3=true
 confflags_EGL = -Dplatforms="$(EGL_PLATFORMS)"
+confflags_GALLIUM += -Dgallium-xa=false -Dllvm=true  -Dgallium-vdpau=false -Dlmsensors=true -Dgallium-va=false -Dgallium-drivers="$(GALLIUM_DRIVERS)"
 confflags_GLES = -Dgles1=false -Dgles2=true
-confflags_GALLIUM += -Dgallium-drivers="$(GALLIUM_DRIVERS)"
+confflags_OSMESA = -Dosmesa=gallium
+confflags_VULKAN = -Dvulkan-overlay-layer=false
+
+
+
 
 confflags += \
 	-Ddri-drivers="$(DRI_DRIVERS)" \
@@ -197,27 +120,6 @@ override_dh_install:
 	install -m755 -d debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
 	mv debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/dri/*_dri.so \
 	   debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
-
-  # Remove vulkan headers only where they get installed in tmp
-  # We ship those headers via src:vulkan / libvulkan-dev
-  ifneq (,$(filter $(DEB_HOST_ARCH),amd64 i386 x32))
-	rm debian/tmp/usr/include/vulkan/vulkan_intel.h
-	rmdir debian/tmp/usr/include/vulkan
-  endif
-
-  ifneq ($(DEB_HOST_ARCH_OS), hurd)
-	# Copy the hardlinked vdpau drivers correctly.
-	install -m755 -d debian/mesa-vdpau-drivers/usr/lib/${DEB_HOST_MULTIARCH}/vdpau/
-	mv debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/vdpau/libvdpau*.so* \
-	   debian/mesa-vdpau-drivers/usr/lib/${DEB_HOST_MULTIARCH}/vdpau/
-
-    ifeq (,$(filter pkg.mesa.nolibva,$(DEB_BUILD_PROFILES)))
-	# Copy the hardlinked va drivers correctly.
-	install -m755 -d debian/mesa-va-drivers/usr/lib/${DEB_HOST_MULTIARCH}/dri/
-	mv debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/dri/*_drv_video.so \
-	   debian/mesa-va-drivers/usr/lib/${DEB_HOST_MULTIARCH}/dri/
-    endif
-  endif
 
 	dh_install -a
 
