@@ -49,6 +49,8 @@ save it as `/etc/X11/xorg.conf.d/02-lima.conf`
 
 3.2 configure Xserver for panfrost: same as lima
 
+4, configure Wayland: works out-of-box.
+
 ### build yourself:
 
 1, copy debian to your mesa source code folder.
