@@ -27,7 +27,7 @@ else
   endif
 endif
 
-VULKAN_DRIVERS = 
+VULKAN_DRIVERS =
 ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
 DRI_DRIVERS =
 GALLIUM_DRIVERS = kmsro, lima, panfrost, swrast
@@ -42,10 +42,11 @@ confflags_DIRECT_RENDERING = -Dglx-direct=true
 confflags_GBM = -Dgbm=true
 confflags_DRI3 = -Ddri3=true
 confflags_EGL = -Dplatforms="$(EGL_PLATFORMS)"
-confflags_GALLIUM += -Dgallium-xa=false -Dllvm=true  -Dgallium-vdpau=false -Dlmsensors=true -Dgallium-va=false -Dgallium-drivers="$(GALLIUM_DRIVERS)"
+confflags_GALLIUM += -Dgallium-xa=false -Dllvm=true  -Dgallium-vdpau=false -Dlmsensors=true -Dgallium-va=false -Dgallium-drivers="$(GALLIUM_DRIVERS)" -Dgallium-opencl=icd -Dgallium-nine=false
 confflags_GLES = -Dgles1=false -Dgles2=true
 confflags_OSMESA = -Dosmesa=gallium
-confflags_VULKAN = -Dvulkan-overlay-layer=false
+confflags_VULKAN = -Dvulkan-device-select-layer=true -Dvulkan-overlay-layer=true
+confflags_VALGRIND += -Dvalgrind=true
 
 
 
@@ -67,6 +68,7 @@ confflags += \
 	$(confflags_GALLIUM) \
 	$(confflags_GLES) \
 	$(confflags_OSMESA) \
+	$(confflags_VALGRIND) \
 	$(confflags_VULKAN)
 
 override_dh_clean:
@@ -120,6 +122,23 @@ override_dh_install:
 	install -m755 -d debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
 	mv debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/dri/*_dri.so \
 	   debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
+
+  # Remove vulkan headers only where they get installed in tmp
+  # We ship those headers via src:vulkan / libvulkan-dev
+  ifneq (,$(filter $(DEB_HOST_ARCH),amd64 i386 x32))
+	rm debian/tmp/usr/include/vulkan/vulkan_intel.h
+	rmdir debian/tmp/usr/include/vulkan
+  endif
+
+  ifneq ($(DEB_HOST_ARCH_OS), hurd)
+	# Copy the hardlinked vdpau drivers correctly.
+	install -m755 -d debian/mesa-vdpau-drivers/usr/lib/${DEB_HOST_MULTIARCH}/vdpau/
+
+    ifeq (,$(filter pkg.mesa.nolibva,$(DEB_BUILD_PROFILES)))
+	# Copy the hardlinked va drivers correctly.
+	install -m755 -d debian/mesa-va-drivers/usr/lib/${DEB_HOST_MULTIARCH}/dri/
+    endif
+  endif
 
 	dh_install -a
 
