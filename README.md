@@ -6,7 +6,7 @@ this project is ONLY for debian buster. No mesa3d driver for stretch and older d
 
 if you are using ubuntu, please go [graphics-drivers PPA](https://launchpad.net/~oibaf/+archive/ubuntu/graphics-drivers).
 
-these packages will be hosted in [packagecloud](https://packagecloud.io/zhangn1985/mesa), debian buster ONLY.
+these packages will be hosted in [Xupdate](http://49.234.128.57:8080/), debian buster ONLY.
 
 ### NOTE
 
@@ -15,7 +15,7 @@ Armhf support will be dropped after Chinese New Year. but related packages will 
 
 ### HOWTO:
 
-1, enable [packagecloud](https://packagecloud.io/zhangn1985/mesa) repo
+1, enable [Xupdate](https://forum.armbian.com/topic/13409-announcement-xupdate-for-debian-is-created-updated-mesa-for-mali-gpus/) repo
 
 2, run `sudo apt update && apt upgrade`
 
