@@ -27,7 +27,7 @@ else
   endif
 endif
 
-VULKAN_DRIVERS =
+VULKAN_DRIVERS = swrast
 ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
 DRI_DRIVERS =
 GALLIUM_DRIVERS = kmsro, lima, panfrost, swrast
@@ -122,13 +122,6 @@ override_dh_install:
 	install -m755 -d debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
 	mv debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/dri/*_dri.so \
 	   debian/libgl1-mesa-dri/usr/lib/${DEB_HOST_MULTIARCH}/dri/
-
-  # Remove vulkan headers only where they get installed in tmp
-  # We ship those headers via src:vulkan / libvulkan-dev
-  ifneq (,$(filter $(DEB_HOST_ARCH),amd64 i386 x32))
-	rm debian/tmp/usr/include/vulkan/vulkan_intel.h
-	rmdir debian/tmp/usr/include/vulkan
-  endif
 
   ifneq ($(DEB_HOST_ARCH_OS), hurd)
 	# Copy the hardlinked vdpau drivers correctly.
