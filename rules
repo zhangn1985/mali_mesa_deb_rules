@@ -28,25 +28,24 @@ else
 endif
 
 VULKAN_DRIVERS = swrast
-ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
 DRI_DRIVERS =
+ifneq (,$(filter $(DEB_HOST_ARCH), armhf arm64))
 GALLIUM_DRIVERS = kmsro, lima, panfrost, swrast
 else
-DRI_DRIVERS = i965
 GALLIUM_DRIVERS = i915, swrast, iris
 endif
 
-EGL_PLATFORMS = drm,x11,surfaceless,wayland
+EGL_PLATFORMS = x11,wayland
 
 confflags_DIRECT_RENDERING = -Dglx-direct=true
 confflags_GBM = -Dgbm=true
-confflags_DRI3 = -Ddri3=true
+confflags_DRI3 = -Ddri3=enabled
 confflags_EGL = -Dplatforms="$(EGL_PLATFORMS)"
-confflags_GALLIUM += -Dgallium-xa=false -Dllvm=true  -Dgallium-vdpau=false -Dlmsensors=true -Dgallium-va=false -Dgallium-drivers="$(GALLIUM_DRIVERS)" -Dgallium-opencl=icd -Dgallium-nine=false
-confflags_GLES = -Dgles1=false -Dgles2=true
-confflags_OSMESA = -Dosmesa=gallium
+confflags_GALLIUM += -Dgallium-xa=false -Dllvm=enabled  -Dgallium-vdpau=disabled -Dlmsensors=enabled -Dgallium-va=disabled -Dgallium-drivers="$(GALLIUM_DRIVERS)" -Dgallium-opencl=icd -Dgallium-nine=false
+confflags_GLES = -Dgles1=disabled -Dgles2=enabled
+confflags_OSMESA = -Dosmesa=true
 confflags_VULKAN = -Dvulkan-device-select-layer=true -Dvulkan-overlay-layer=true
-confflags_VALGRIND += -Dvalgrind=true
+confflags_VALGRIND += -Dvalgrind=enabled
 
 
 
@@ -57,8 +56,8 @@ confflags += \
 	-Ddri-search-path='/usr/lib/$(DEB_HOST_MULTIARCH)/dri:\$$$${ORIGIN}/dri:/usr/lib/dri' \
 	-Dvulkan-drivers="$(VULKAN_DRIVERS)" \
 	-Dglvnd=true \
-	-Dshared-glapi=true \
-	-Dgallium-xvmc=false \
+	-Dshared-glapi=enabled \
+	-Dgallium-xvmc=disabled \
 	-Dgallium-omx=disabled \
 	-Db_ndebug=true \
 	$(confflags_DIRECT_RENDERING) \
